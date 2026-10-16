@@ -408,8 +408,19 @@ impl ModelWeights {
     }
 
     pub fn forward(&mut self, input: &Tensor, offset: usize) -> Result<Tensor> {
+        let last_hidden = self.forward_hidden(input, offset)?;
+        let _enter = self.span_output.enter();
+        self.lm_head.forward(&last_hidden)?.squeeze(1)
+    }
+
+    /// Final normalized last-token hidden state, shape [batch, 1, hidden].
+    /// @astra-875-clm 2026-10-16 -- CLM pooling uses this before the LM head.
+    pub fn forward_hidden(&mut self, input: &Tensor, offset: usize) -> Result<Tensor> {
         let _enter = self.span.enter();
         let (b, l) = input.dims2()?;
+        if l == 0 {
+            candle::bail!("Qwen3 hidden-state input must contain at least one token")
+        }
         let mut h = self.embed_tokens.forward(input)?;
         let causal_mask = if l == 1 {
             None
@@ -420,9 +431,7 @@ impl ModelWeights {
             h = layer.forward(&h, causal_mask.as_ref(), offset)?;
         }
         let h = self.norm.forward(&h)?;
-        let _enter = self.span_output.enter();
-        let last_hidden = h.narrow(1, l - 1, 1)?;
-        self.lm_head.forward(&last_hidden)?.squeeze(1)
+        h.narrow(1, l - 1, 1)
     }
 
     pub fn clear_kv_cache(&mut self) {

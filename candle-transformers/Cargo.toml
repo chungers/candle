@@ -12,9 +12,9 @@ readme = "README.md"
 [dependencies]
 accelerate-src = { workspace = true, optional = true }
 byteorder = { workspace = true }
-candle = { workspace = true }
+candle = { package = "candle-core", version = "=0.10.2" }
 candle-flash-attn = { workspace = true, optional = true }
-candle-nn = { workspace = true }
+candle-nn = { version = "=0.10.2" }
 fancy-regex = { workspace = true }
 intel-mkl-src = { workspace = true, optional = true }
 num-traits = { workspace = true }
